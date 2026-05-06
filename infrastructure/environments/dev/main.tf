@@ -1,8 +1,15 @@
-# ---------------------------------------------------------------------------------------------------------------------
-# MAIN - Ghép nối các Module để tạo nên hạ tầng hoàn chỉnh cho Kicks-Shoes
-# ---------------------------------------------------------------------------------------------------------------------
+# ==============================================================================
+# PROJECT: Kicks-Shoes AWS Infrastructure (Production-Ready Boilerplate)
+# FILE: environments/dev/main.tf
+# CHỨC NĂNG: Đây là file "Nhạc Trưởng". Nó gọi các Module hạ tầng và kết nối
+#            chúng lại với nhau để tạo thành một hệ thống hoàn chỉnh.
+# ==============================================================================
 
-# 1. Triển khai Module Network (VPC, Subnets, NAT GW)
+# ------------------------------------------------------------------------------
+# 1. KHỞI TẠO HỆ THỐNG MẠNG (Networking)
+# Thiết lập VPC, Subnets, Internet Gateway và NAT Gateway.
+# Đây là hạ tầng cơ sở, cung cấp dải IP cho toàn bộ dự án.
+# ------------------------------------------------------------------------------
 module "network" {
   source = "../../modules/network"
 
@@ -13,7 +20,12 @@ module "network" {
   availability_zones   = var.availability_zones
 }
 
-# 2. Triển khai Module IAM (Quyền truy cập cho ECS)
+# ------------------------------------------------------------------------------
+# 2. QUẢN LÝ DANH TÍNH & QUYỀN HẠN (IAM)
+# Tạo các IAM Role cho phép ECS Fargate có quyền thực thi:
+# - Task Execution Role: Dùng để kéo Image từ ECR và ghi Log vào CloudWatch.
+# - Task Role: Dùng cho code ứng dụng để truy cập S3/DynamoDB.
+# ------------------------------------------------------------------------------
 module "iam" {
   source = "../../modules/iam"
 
@@ -21,7 +33,11 @@ module "iam" {
   environment  = var.environment
 }
 
-# 3. Triển khai Module Load Balancer (Cổng vào ứng dụng)
+# ------------------------------------------------------------------------------
+# 3. BỘ CÂN BẰNG TẢI (Load Balancer)
+# Tạo Application Load Balancer (ALB) nằm ở Public Subnet.
+# ALB đóng vai trò "cửa ngõ" bảo mật, điều phối traffic từ khách hàng vào App.
+# ------------------------------------------------------------------------------
 module "load_balancer" {
   source = "../../modules/load_balancer"
 
@@ -32,7 +48,11 @@ module "load_balancer" {
   container_port    = var.container_port
 }
 
-# 4. Triển khai Module ECS (Fargate Service)
+# ------------------------------------------------------------------------------
+# 4. TRIỂN KHAI CONTAINER (ECS Fargate)
+# Nơi ứng dụng Backend của bạn thực sự vận hành.
+# Toàn bộ container được đặt trong Private Subnet (Không thể truy cập trực tiếp).
+# ------------------------------------------------------------------------------
 module "ecs" {
   source = "../../modules/ecs"
 
@@ -43,7 +63,7 @@ module "ecs" {
   private_subnet_ids    = module.network.private_subnet_ids
   alb_security_group_id = module.load_balancer.alb_security_group_id
   target_group_arn      = module.load_balancer.target_group_arn
-  alb_listener_arn      = module.load_balancer.alb_listener_arn # Dùng để quản lý dependency
+  alb_listener_arn      = module.load_balancer.alb_listener_arn # Quản lý thứ tự triển khai
   
   execution_role_arn    = module.iam.ecs_task_execution_role_arn
   task_role_arn         = module.iam.ecs_task_role_arn
@@ -54,14 +74,17 @@ module "ecs" {
   memory                = var.memory
   desired_count         = var.desired_count
 
-  # Ví dụ truyền biến môi trường
+  # Truyền biến môi trường cho ứng dụng
   environment_variables = [
     { name = "NODE_ENV", value = var.environment },
     { name = "PORT", value = tostring(var.container_port) }
   ]
 }
 
-# 5. Triển khai Module Database (DynamoDB)
+# ------------------------------------------------------------------------------
+# 5. CƠ SỞ DỮ LIỆU (NoSQL DynamoDB)
+# Thiết lập bảng dữ liệu cho ứng dụng.
+# ------------------------------------------------------------------------------
 module "database" {
   source = "../../modules/database"
 
@@ -69,12 +92,15 @@ module "database" {
   environment  = var.environment
 }
 
-# 6. Triển khai Module Storage (S3 cho Assets)
+# ------------------------------------------------------------------------------
+# 6. LƯU TRỮ TỆP TIN (S3 Storage)
+# Tạo bucket để lưu trữ ảnh sản phẩm, tài liệu...
+# ------------------------------------------------------------------------------
 module "storage_assets" {
   source = "../../modules/storage"
 
   project_name  = var.project_name
   environment   = var.environment
   bucket_name   = "assets"
-  force_destroy = true
+  force_destroy = true # Cho phép xóa bucket kể cả khi có file (cẩn thận!)
 }
