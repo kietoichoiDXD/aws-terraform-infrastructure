@@ -74,6 +74,3 @@ Mọi thay đổi khi Push lên `main` hoặc tạo Pull Request sẽ tự độ
 ---
 
 ## 🤝 Hỗ Trợ & Đóng Góp
-Dự án được duy trì bởi **DevOps Team**. Mọi thắc mắc vui lòng tạo Issue hoặc liên hệ trực tiếp qua hệ thống nội bộ.
-
-*Dự án được tinh chỉnh và chuẩn hóa bởi Antigravity AI.*
