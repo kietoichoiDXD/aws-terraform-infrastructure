@@ -11,7 +11,10 @@ variable "availability_zones" { type = list(string) }
 
 # Biến ECS
 variable "container_image" { type = string }
-variable "container_port" { type = number default = 3000 }
+variable "container_port" {
+  type    = number
+  default = 3000
+}
 variable "cpu" { default = 256 }
 variable "memory" { default = 512 }
 variable "desired_count" { default = 1 }

@@ -1,46 +1,61 @@
-# Hướng Dẫn Xử Lý Lỗi (Troubleshooting) - Terraform on AWS
+# 🛠️ Hướng Dẫn Xử Lý Sự Cố (Troubleshooting)
 
-Tài liệu này liệt kê các lỗi phổ biến khi triển khai hạ tầng bằng Terraform lên AWS và cách khắc phục chuyên nghiệp.
-
-## 1. Lỗi Init & Backend
-
-### Lỗi: `Error: Failed to get existing workspaces` hoặc `Error: Backend initialization required`
-*   **Nguyên nhân**: Bạn đã thay đổi cấu hình backend (ví dụ: đổi tên bucket S3 lưu state) hoặc chưa chạy `init`.
-*   **Cách sửa**: Chạy `terraform init -reconfigure`. Lệnh này sẽ yêu cầu Terraform cấu hình lại backend và copy state cũ sang backend mới nếu cần.
-
-## 2. Lỗi Quyền Truy Cập (Permissions)
-
-### Lỗi: `Error: describing Elastic IP addresses: UnauthorizedOperation`
-*   **Nguyên nhân**: IAM User/Role bạn đang dùng không có đủ quyền thực hiện các API call của AWS.
-*   **Cách sửa**:
-    *   Kiểm tra `aws configure list` để xem đang dùng profile nào.
-    *   Đảm bảo IAM User có quyền `AdministratorAccess` (cho môi trường Lab) hoặc các policy cụ thể (VPCFullAccess, DynamoDBFullAccess, S3FullAccess).
-
-## 3. Lỗi Tài Nguyên Đã Tồn Tại (Resource Conflict)
-
-### Lỗi: `Error: creating CloudFront Distribution: CNAMEAlreadyExists` hoặc `BucketAlreadyExists`
-*   **Nguyên nhân**: Bạn đang cố gắng tạo một tài nguyên mà tên (hoặc CNAME) của nó đã bị chiếm dụng bởi một tài khoản AWS khác trên toàn thế giới (đối với S3/CloudFront).
-*   **Cách sửa**: Đổi tên bucket hoặc thêm một chuỗi ngẫu nhiên (dùng resource `random_id`) vào hậu tố của tên tài nguyên.
-
-## 4. Lỗi Trạng Thái (State Lock)
-
-### Lỗi: `Error: Error acquiring the state lock`
-*   **Nguyên nhân**: Một người khác đang chạy `terraform apply` hoặc lệnh trước đó bị crash giữa chừng khiến DynamoDB lock không được giải phóng.
-*   **Cách sửa**:
-    *   Kiểm tra xem có ai đang deploy không.
-    *   Nếu chắc chắn không có ai, lấy `Lock Info ID` từ thông báo lỗi và chạy: `terraform force-unlock <LOCK_ID>`.
-
-## 5. Lỗi Dependency (Phụ thuộc)
-
-### Lỗi: `Error: deleting Subnet: DependencyViolation`
-*   **Nguyên nhân**: Bạn đang xóa Subnet nhưng vẫn còn Network Interface (ENI) hoặc EC2 Instance đang chạy trong đó.
-*   **Cách sửa**: Kiểm tra và xóa các tài nguyên phụ thuộc trước (thường là do tạo bằng tay trên Console mà không qua Terraform).
-
-## 6. Lỗi Cấu Hình (Configuration)
-
-### Lỗi: `Error: cycle: module.network.var.vpc_id (expand)`
-*   **Nguyên nhân**: Lỗi vòng lặp (Circular Dependency). A cần B, B lại cần A.
-*   **Cách sửa**: Kiểm tra lại logic truyền biến giữa các module trong `main.tf`. Đảm bảo luồng dữ liệu đi một chiều (ví dụ: Network -> App -> Database).
+> **Mục tiêu:** Giải quyết nhanh các vấn đề thường gặp khi vận hành Terraform và hạ tầng AWS.
 
 ---
-**Mẹo chuyên nghiệp**: Luôn chạy `terraform fmt` để format code đẹp và `terraform validate` trước khi `plan` để bắt lỗi cú pháp sớm!
+
+## 📌 1. Lỗi Khởi Tạo (Initialization)
+
+### Lỗi: `Backend initialization required`
+- **Nguyên nhân:** Bạn vừa thay đổi cấu hình S3 Backend hoặc DynamoDB Lock Table.
+- **Giải pháp:** Chạy `terraform init -reconfigure` để đồng bộ lại trạng thái.
+
+### Lỗi: `Error downloading modules`
+- **Nguyên nhân:** Kết nối mạng không ổn định hoặc sai địa chỉ `source` trong module.
+- **Giải pháp:** Kiểm tra đường truyền và thử chạy lại `terraform init`.
+
+---
+
+## 🔐 2. Lỗi Quyền Truy Cập (IAM & Access)
+
+### Lỗi: `AccessDenied: User is not authorized to perform...`
+- **Nguyên nhân:** IAM User/Role của bạn thiếu quyền thực thi API trên AWS.
+- **Giải pháp:** 
+    - Kiểm tra profile hiện tại: `aws configure list`.
+    - Đảm bảo User có đính kèm policy `AdministratorAccess` (hoặc các quyền tối thiểu cho VPC, ECS, RDS).
+
+---
+
+## 🔒 3. Lỗi Trạng Thái (State Lock)
+
+### Lỗi: `Error acquiring the state lock`
+- **Nguyên nhân:** Một phiên `apply` trước đó bị ngắt quãng hoặc có người khác đang chạy lệnh.
+- **Giải pháp:**
+    - Nếu chắc chắn không có ai đang deploy, copy `Lock Info ID` từ thông báo lỗi.
+    - Chạy: `terraform force-unlock <LOCK_ID>`.
+
+---
+
+## 🔄 4. Lỗi Phụ Thuộc (Dependency)
+
+### Lỗi: `DependencyViolation: The vpc has dependencies`
+- **Nguyên nhân:** Bạn đang chạy `destroy` nhưng vẫn còn các tài nguyên tạo thủ công (không qua Terraform) đang nằm trong VPC đó.
+- **Giải pháp:** Vào AWS Console, tìm và xóa các Network Interface (ENI), Security Group hoặc Load Balancer tạo tay trước khi chạy lại lệnh xóa.
+
+---
+
+## 🧩 5. Lỗi Logic (HCL Code)
+
+### Lỗi: `Cycle detected` (Vòng lặp)
+- **Nguyên nhân:** Module A cần biến từ Module B, nhưng Module B lại đang chờ dữ liệu từ Module A.
+- **Giải pháp:** Kiểm tra lại sơ đồ phụ thuộc. Đảm bảo luồng dữ liệu đi một chiều: **Network -> Application -> Database**.
+
+---
+
+## 💡 Mẹo Chuyên Nghiệp
+- **Debug sâu:** Chạy `export TF_LOG=DEBUG` để xem chi tiết từng bước Terraform gọi API AWS.
+- **Kiểm tra cú pháp:** Luôn chạy `terraform validate` trước khi `plan`.
+- **Dọn dẹp:** Nếu code bị loạn, hãy xóa thư mục ẩn `.terraform` và chạy `init` lại từ đầu.
+
+---
+*Tài liệu hỗ trợ dự án Kicks-Shoes.*

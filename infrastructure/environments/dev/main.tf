@@ -64,15 +64,15 @@ module "ecs" {
   alb_security_group_id = module.load_balancer.alb_security_group_id
   target_group_arn      = module.load_balancer.target_group_arn
   alb_listener_arn      = module.load_balancer.alb_listener_arn # Quản lý thứ tự triển khai
-  
-  execution_role_arn    = module.iam.ecs_task_execution_role_arn
-  task_role_arn         = module.iam.ecs_task_role_arn
-  
-  container_image       = var.container_image
-  container_port        = var.container_port
-  cpu                   = var.cpu
-  memory                = var.memory
-  desired_count         = var.desired_count
+
+  execution_role_arn = module.iam.ecs_task_execution_role_arn
+  task_role_arn      = module.iam.ecs_task_role_arn
+
+  container_image = var.container_image
+  container_port  = var.container_port
+  cpu             = var.cpu
+  memory          = var.memory
+  desired_count   = var.desired_count
 
   # Truyền biến môi trường cho ứng dụng
   environment_variables = [
