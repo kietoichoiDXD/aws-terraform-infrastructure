@@ -61,10 +61,27 @@ Tóm tắt các bước:
     terraform apply
     ```
 
-## 4. Tài liệu quan trọng cho Team
-*   **Dành cho Backend**: [Hướng dẫn vận hành backend](docs/BACKEND_OPERATIONS_GUIDE.md)
-*   **Dành cho DevOps**: [Kiến trúc hệ thống](docs/ARCHITECTURE_GUIDE.md)
-*   **Dành cho Newbie**: [Cách dùng Terraform Registry](docs/TERRAFORM_REGISTRY_GUIDE.md)
+## 4. Chi Tiết Từng File & Chức Năng (Detailed Files & Functions)
+
+### 📂 Thư mục `modules/` (Thành phần hạ tầng tái sử dụng)
+Mỗi module được thiết kế để giải quyết một bài toán cụ thể và có 3 file cốt lõi:
+-   **`main.tf`**: Nơi định nghĩa logic chính và các tài nguyên AWS (VPC, ECS Cluster, DB...).
+-   **`variables.tf`**: Các tham số đầu vào giúp module linh hoạt (VD: dải IP, tên ứng dụng).
+-   **`outputs.tf`**: Xuất ra các giá trị cần thiết để các module khác có thể sử dụng (VD: ID của Network để truyền vào Compute).
+
+**Chi tiết các Module:**
+*   **`network/`**: Thiết lập VPC, các Subnet (Public cho Load Balancer, Private cho App), Internet Gateway và NAT Gateway.
+*   **`iam/`**: Quản lý phân quyền. Tạo `Task Execution Role` (để ECS kéo Image) và `Task Role` (để App truy cập DB).
+*   **`load_balancer/`**: Cấu hình Application Load Balancer (ALB) để điều phối traffic và kiểm tra sức khỏe (Health Check) của App.
+*   **`ecs/`**: Trái tim của hệ thống. Định nghĩa Cluster, Service và Task Definition để chạy các Container Docker trên Fargate.
+*   **`database/`**: Quản lý NoSQL DynamoDB cho dữ liệu ứng dụng.
+*   **`storage/`**: Quản lý S3 Buckets cho lưu trữ file tĩnh hoặc ảnh sản phẩm.
+
+### 📂 Thư mục `environments/dev/` (Cấu hình môi trường Development)
+-   **`main.tf`**: File trung tâm kết nối toàn bộ các module. Nó điều phối luồng dữ liệu giữa Network, IAM, ALB và ECS.
+-   **`providers.tf`**: Cấu hình kết nối với AWS và thiết lập **S3 Backend** để quản lý file State từ xa, hỗ trợ làm việc nhóm an toàn.
+-   **`terraform.tfvars`**: Nơi chứa các giá trị thực tế (Secrets, Configs).
+-   **`variables.tf` & `outputs.tf`**: Quản lý biến đầu vào và đầu ra tổng thể của cả môi trường.
 
 ---
 *Chúc bạn triển khai hạ tầng thành công! Nếu gặp lỗi, hãy check [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).*
