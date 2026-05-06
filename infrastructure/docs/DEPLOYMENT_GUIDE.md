@@ -23,6 +23,8 @@ Mở file `infrastructure/environments/dev/terraform.tfvars` và cập nhật c�
 *   `aws_region`: Vùng bạn muốn triển khai (ví dụ: `ap-southeast-1` cho Singapore).
 *   `project_name`: Tên dự án của bạn (ví dụ: `my-cool-app`).
 *   `vpc_cidr`: Dải IP mạng (mặc định `10.0.0.0/16`).
+*   `container_image`: URI của image Docker (mặc định `nginx:latest` cho dev).
+*   `container_port`: Cổng ứng dụng (mặc định `80`).
 
 ### Bước 2: Cấu hình Provider
 Mở file `infrastructure/environments/dev/providers.tf`:
