@@ -85,24 +85,40 @@ Chúng ta sử dụng `hashicorp/setup-terraform` để cài đặt Terraform CL
 > [!IMPORTANT]
 > **State Locking:** Pipeline sẽ tự động sử dụng DynamoDB để lock state. Nếu có 2 pipeline chạy cùng lúc, cái thứ 2 sẽ phải chờ cái thứ nhất hoàn thành để tránh xung đột hạ tầng.
 
-### Workflow Example:
+### Workflow Implementation:
+File: `.github/workflows/terraform-pipeline.yml`
+
 ```yaml
+name: "🚀 Infrastructure Pipeline"
+
+on:
+  push:
+    branches: [main]
+    paths: ['infrastructure/**']
+  pull_request:
+    branches: [main]
+    paths: ['infrastructure/**']
+
 jobs:
   terraform:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: hashicorp/setup-terraform@v2
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
       
       - name: Terraform Init
         run: terraform init
+        working-directory: infrastructure/environments/dev
         
       - name: Terraform Plan
+        if: github.event_name == 'pull_request'
         run: terraform plan -no-color
+        working-directory: infrastructure/environments/dev
         
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform apply -auto-approve
+        working-directory: infrastructure/environments/dev
 ```
 
 ---
