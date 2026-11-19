@@ -1,0 +1,14 @@
+aws_region            = "ap-southeast-3"
+container_service_name = "scribeba-prod"
+container_power       = "micro"
+image_tag             = "REPLACE_WITH_GIT_SHA"
+deploy_app            = false
+allowed_origin        = ""
+app_password          = "SET_A_LONG_RANDOM_PASSWORD_LOCALLY"
+session_secret        = "SET_AT_LEAST_32_RANDOM_CHARACTERS_LOCALLY"
+nebius_api_key        = "SET_NEBIUS_API_KEY_LOCALLY"
+nebius_base_url       = "https://api.studio.nebius.ai/v1"
+nebius_model          = "Qwen/Qwen3-30B-A3B"
+enable_slack_notifications = false
+slack_webhook_url     = ""
+slack_channel         = "aws-alerts"

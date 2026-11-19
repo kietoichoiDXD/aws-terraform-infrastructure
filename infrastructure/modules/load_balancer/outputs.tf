@@ -9,3 +9,8 @@ output "target_group_arn" {
 output "alb_security_group_id" {
   value = aws_security_group.alb_sg.id
 }
+
+output "alb_listener_arn" {
+  description = "ARN of the HTTP listener used by the ECS target service."
+  value       = aws_lb_listener.http.arn
+}

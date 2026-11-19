@@ -12,6 +12,7 @@ crash.*.log
 # Exclude sensitive vars
 *.tfvars
 *.tfvars.json
+**/backend.hcl
 
 # Override files
 override.tf
