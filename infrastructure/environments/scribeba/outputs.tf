@@ -1,6 +1,6 @@
 output "app_url" {
   description = "Public HTTPS URL for the ScribeBA container service."
-  value       = aws_lightsail_container_service.app.url
+  value       = try(aws_lightsail_container_service.app[0].url, null)
 }
 
 output "ecr_repository_url" {

@@ -1,5 +1,5 @@
 locals {
-  allowed_origin = var.allowed_origin != "" ? var.allowed_origin : aws_lightsail_container_service.app.url
+  allowed_origin = var.allowed_origin != "" ? var.allowed_origin : try(aws_lightsail_container_service.app[0].url, "")
   common_tags = {
     Project   = "ScribeBA"
     ManagedBy = "Terraform"
@@ -22,6 +22,7 @@ resource "aws_ecr_repository" "app" {
 }
 
 resource "aws_lightsail_container_service" "app" {
+  count       = var.deploy_app ? 1 : 0
   name        = var.container_service_name
   power       = var.container_power
   scale       = 1
@@ -37,13 +38,15 @@ resource "aws_lightsail_container_service" "app" {
 }
 
 data "aws_iam_policy_document" "allow_lightsail_pull" {
+  count = var.deploy_app ? 1 : 0
+
   statement {
     sid    = "AllowLightsailToPullScribeBAImage"
     effect = "Allow"
 
     principals {
       type        = "AWS"
-      identifiers = [aws_lightsail_container_service.app.private_registry_access[0].ecr_image_puller_role[0].principal_arn]
+      identifiers = [aws_lightsail_container_service.app[0].private_registry_access[0].ecr_image_puller_role[0].principal_arn]
     }
 
     actions = [
@@ -54,13 +57,14 @@ data "aws_iam_policy_document" "allow_lightsail_pull" {
 }
 
 resource "aws_ecr_repository_policy" "app" {
+  count      = var.deploy_app ? 1 : 0
   repository = aws_ecr_repository.app.name
-  policy     = data.aws_iam_policy_document.allow_lightsail_pull.json
+  policy     = data.aws_iam_policy_document.allow_lightsail_pull[0].json
 }
 
 resource "aws_lightsail_container_service_deployment_version" "app" {
   count        = var.deploy_app ? 1 : 0
-  service_name = aws_lightsail_container_service.app.name
+  service_name = aws_lightsail_container_service.app[0].name
 
   container {
     container_name = "scribeba"

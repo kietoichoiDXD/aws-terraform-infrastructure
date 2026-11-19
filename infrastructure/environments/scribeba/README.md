@@ -19,7 +19,7 @@ Use Terraform CLI 1.10 or newer and AWS credentials with permissions limited to 
 2. Bootstrap an encrypted, versioned S3 bucket for Terraform state with `infrastructure/bootstrap/state`. Keep access restricted. S3 state contains the app password, session secret, and Nebius key because Lightsail container deployment environment variables are managed as Terraform values. The variables are marked sensitive for CLI output, but sensitive values still exist in state.
 3. Copy `backend.hcl.example` to the ignored `backend.hcl` and set the real state bucket. Copy `terraform.tfvars.example` to ignored `terraform.tfvars`, then fill local values. Never commit either file.
 4. Create a long random login password and at least 32 random characters for `session_secret`. Obtain a Nebius API key. The app starts in live mode.
-5. Apply once with `deploy_app=false` to create the service and ECR repository. Build and push an immutable image tag to the ECR URL printed by Terraform, set `deploy_app=true`, and apply again.
+5. Apply once with `deploy_app=false` to create only ECR (no running service charge). Build and push an immutable image tag to the ECR URL printed by Terraform, set `deploy_app=true`, and apply again to create the Lightsail service and deploy the app.
 6. If using a custom domain, set `allowed_origin` to its exact HTTPS origin. Otherwise, the generated Lightsail HTTPS URL is used automatically.
 
 ## State and first initialization
