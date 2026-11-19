@@ -20,3 +20,16 @@ variable "container_power" {
     error_message = "Choose a supported Lightsail container power tier."
   }
 }
+
+variable "google_client_id" {
+  description = "Optional Google OAuth client ID for Cognito federation. Keep its matching secret in a private Terraform variable file."
+  type        = string
+  default     = ""
+}
+
+variable "google_client_secret" {
+  description = "Optional Google OAuth client secret for Cognito federation. Never commit this value."
+  type        = string
+  default     = ""
+  sensitive   = true
+}

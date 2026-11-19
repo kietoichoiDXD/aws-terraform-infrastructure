@@ -100,6 +100,39 @@ $containerEnvironment = @{
     SCRIBEBA_COOKIE_SAMESITE   = 'Lax'
 }
 
+# Optional integrations are sourced from the ignored local secrets file or process
+# environment. Never commit their values or print them in deployment output.
+$optionalSecretNames = @(
+    'OPENROUTER_API_KEY',
+    'OPENROUTER_MODEL',
+    'OPENROUTER_TRIAGE_MODEL',
+    'OPENAI_API_KEY',
+    'CODEX_MODEL',
+    'EXA_API_KEY',
+    'SLACK_BOT_TOKEN',
+    'SLACK_USER_TOKEN',
+    'SLACK_APP_TOKEN',
+    'SLACK_SIGNING_SECRET',
+    'CLICKUP_API_KEY',
+    'CLICKUP_TEAM_ID',
+    'CLICKUP_SPACE_ID',
+    'CLICKUP_LIST_ID',
+    'DISCORD_BOT_TOKEN',
+    'DISCORD_WEBHOOK_URL',
+    'TELEGRAM_BOT_TOKEN',
+    'COGNITO_REGION',
+    'COGNITO_USER_POOL_ID',
+    'COGNITO_CLIENT_ID',
+    'COGNITO_DOMAIN',
+    'COGNITO_GOOGLE_ENABLED'
+)
+foreach ($name in $optionalSecretNames) {
+    $value = Get-DeploymentValue $name
+    if (-not [string]::IsNullOrWhiteSpace($value)) {
+        $containerEnvironment[$name] = $value
+    }
+}
+
 $deployment = @{
     serviceName = $ServiceName
     containers = @{
@@ -128,15 +161,27 @@ try {
     $json = $deployment | ConvertTo-Json -Depth 12 -Compress
     [IO.File]::WriteAllText($tempFile, $json, [Text.UTF8Encoding]::new($false))
     if ([IO.Path]::DirectorySeparatorChar -eq '\') {
-        $payloadUri = 'file:///' + $tempFile.Replace('\', '/')
+        $payloadUri = 'file://' + $tempFile.Replace('\', '/')
     }
     else {
         $payloadUri = 'file://' + $tempFile
     }
 
-    & aws lightsail create-container-service-deployment --region $Region --cli-input-json $payloadUri --no-cli-pager 2>$null | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw 'Lightsail rejected the deployment request. Check service status and AWS permissions.'
+    $awsOutput = & aws lightsail create-container-service-deployment --region $Region --cli-input-json $payloadUri --no-cli-pager 2>&1
+    $awsExitCode = $LASTEXITCODE
+    if ($awsExitCode -ne 0) {
+        # AWS errors may include request context; expose only the error code so
+        # deployment diagnostics never echo secret-bearing request values.
+        $errorText = (@($awsOutput | ForEach-Object { $_.ToString() })) -join "`n"
+        foreach ($environmentValue in $containerEnvironment.Values) {
+            if (-not [string]::IsNullOrWhiteSpace([string]$environmentValue)) {
+                $errorText = $errorText.Replace([string]$environmentValue, '[REDACTED]')
+            }
+        }
+        $errorCode = if ($errorText -match 'An error occurred \(([^)]+)\)') { $matches[1] } else { 'unknown AWS error' }
+        $safeDetail = if ($errorCode -eq 'ParamValidation') { ($errorText -replace '[\r\n]+', ' ').Trim() } else { '' }
+        if ($safeDetail.Length -gt 400) { $safeDetail = $safeDetail.Substring(0, 400) }
+        throw "Lightsail rejected the deployment request ($errorCode). $safeDetail"
     }
 }
 finally {
