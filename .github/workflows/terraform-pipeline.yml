@@ -34,7 +34,7 @@ jobs:
 
       - name: Initialize and validate environment roots
         run: |
-          for dir in infrastructure/environments/dev infrastructure/environments/scribeba; do
+          for dir in infrastructure/bootstrap/state infrastructure/environments/dev infrastructure/environments/scribeba; do
             terraform -chdir="$dir" init -backend=false -input=false
             terraform -chdir="$dir" validate -no-color
           done

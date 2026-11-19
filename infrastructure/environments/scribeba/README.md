@@ -14,7 +14,7 @@ Jakarta (`ap-southeast-3`) is the default region because it is geographically cl
 ## Before deployment
 
 1. Confirm AWS account access and enable `ap-southeast-3` in AWS Account settings.
-2. Create an encrypted, versioned S3 bucket for Terraform state. Keep access restricted. S3 state contains the app password, session secret, and Nebius key because Lightsail container deployment environment variables are managed as Terraform values. The variables are marked sensitive for CLI output, but sensitive values still exist in state.
+2. Bootstrap an encrypted, versioned S3 bucket for Terraform state with `infrastructure/bootstrap/state`. Keep access restricted. S3 state contains the app password, session secret, and Nebius key because Lightsail container deployment environment variables are managed as Terraform values. The variables are marked sensitive for CLI output, but sensitive values still exist in state.
 3. Copy `backend.hcl.example` to the ignored `backend.hcl` and set the real state bucket. Copy `terraform.tfvars.example` to ignored `terraform.tfvars`, then fill local values. Never commit either file.
 4. Create a long random login password and at least 32 random characters for `session_secret`. Obtain a Nebius API key. The app starts in live mode.
 5. Apply once with `deploy_app=false` to create the service and ECR repository. Build and push an immutable image tag to the ECR URL printed by Terraform, set `deploy_app=true`, and apply again.
@@ -22,9 +22,14 @@ Jakarta (`ap-southeast-3`) is the default region because it is geographically cl
 
 ## State and first initialization
 
-The `backend "s3" {}` block requires a pre-existing state bucket. Use a separate bootstrap process to create a unique bucket with versioning, SSE-S3/SSE-KMS, public-access blocking, and tightly scoped access. Supply it with:
+The bootstrap root uses a local state file only for the bucket itself. Store that file securely and do not commit it. After creating the bucket, use its output in the ScribeBA backend config:
 
 ```powershell
+terraform -chdir=infrastructure/bootstrap/state init
+terraform -chdir=infrastructure/bootstrap/state apply
+terraform -chdir=infrastructure/bootstrap/state output -raw bucket_name
+
+# In infrastructure/environments/scribeba:
 Copy-Item backend.hcl.example backend.hcl
 Copy-Item terraform.tfvars.example terraform.tfvars
 terraform init -backend-config=backend.hcl
