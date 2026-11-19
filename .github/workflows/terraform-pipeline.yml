@@ -32,6 +32,25 @@ jobs:
       - name: Terraform Format Check
         run: terraform fmt -check -recursive infrastructure
 
+      - name: Parse local deployment script
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $parseErrors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            'infrastructure/environments/scribeba/scripts/deploy-lightsail.ps1',
+            [ref]$tokens,
+            [ref]$parseErrors
+          ) | Out-Null
+          if ($parseErrors.Count -gt 0) {
+            $parseErrors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
+
+      - name: Mock local deployment payload and cleanup
+        shell: pwsh
+        run: ./infrastructure/environments/scribeba/scripts/test-deploy-lightsail.ps1
+
       - name: Initialize and validate environment roots
         run: |
           for dir in infrastructure/bootstrap/state infrastructure/environments/dev infrastructure/environments/scribeba; do

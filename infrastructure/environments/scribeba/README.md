@@ -1,13 +1,13 @@
 # ScribeBA AWS environment
 
-This environment adds a low-cost, same-origin deployment for the ScribeBA React frontend and Flask API. It is isolated from the existing Kicks-Shoes ECS development environment.
+This environment creates the ScribeBA ECR repository and Lightsail container service. A separate local-only script creates the app deployment. It is isolated from the existing Kicks-Shoes ECS development environment.
 
 ## Architecture
 
 - One 1 GB Lightsail container service (micro tier) for the unified app, with its built-in HTTPS endpoint.
-- One private ECR repository with image scanning and immutable tags. Lightsail pulls from ECR using its dedicated image-puller role.
+- One private ECR repository with image scanning, immutable tags, and a lifecycle rule that keeps the 10 most recent images. Lightsail pulls from ECR using its dedicated image-puller role.
 - No VPC, NAT Gateway, ALB, RDS, or always-on Kubernetes cluster.
-- Optional `terraform-aws-modules/notify-slack/aws` SNS/Lambda module for AWS infrastructure alerts. It requires a Slack incoming webhook and is disabled by default. It does not configure ScribeBA's Slack ingestion integration.
+- Terraform has no application credentials, webhook values, or runtime environment variables as inputs.
 
 Jakarta (`ap-southeast-3`) is the default region because it is geographically closer to Vietnam than Singapore. Enable the region in the AWS account before deploying. This choice is for latency/geography; AWS's published Lightsail container pricing is not lower there by default.
 
@@ -16,11 +16,19 @@ Jakarta (`ap-southeast-3`) is the default region because it is geographically cl
 Use Terraform CLI 1.10 or newer and AWS credentials with permissions limited to the resources in this environment.
 
 1. Confirm AWS account access and enable `ap-southeast-3` in AWS Account settings.
-2. Bootstrap an encrypted, versioned S3 bucket for Terraform state with `infrastructure/bootstrap/state`. Keep access restricted. S3 state contains the app password, session secret, and Nebius key because Lightsail container deployment environment variables are managed as Terraform values. The variables are marked sensitive for CLI output, but sensitive values still exist in state.
-3. Copy `backend.hcl.example` to the ignored `backend.hcl` and set the real state bucket. Copy `terraform.tfvars.example` to ignored `terraform.tfvars`, then fill local values. Never commit either file.
-4. Create a long random login password and at least 32 random characters for `session_secret`. Obtain a Nebius API key. The app starts in live mode.
-5. Apply once with `deploy_app=false` to create only ECR (no running service charge). Build and push an immutable image tag to the ECR URL printed by Terraform, set `deploy_app=true`, and apply again to create the Lightsail service and deploy the app.
-6. If using a custom domain, set `allowed_origin` to its exact HTTPS origin. Otherwise, the generated Lightsail HTTPS URL is used automatically.
+2. Bootstrap an encrypted, versioned S3 bucket for Terraform state with `infrastructure/bootstrap/state`. Keep state-bucket access restricted.
+3. Copy `backend.hcl.example` to the ignored `backend.hcl` and set the real state bucket. Copy `terraform.tfvars.example` to ignored `terraform.tfvars`. These Terraform values only configure the AWS region, service name, and service size.
+4. Apply Terraform to create ECR, the Lightsail service, and ECR pull access. **The Lightsail service has a fixed monthly charge as soon as it is created**, even before the app is deployed.
+5. Build the application image and push it to the ECR repository output by Terraform using an immutable git-SHA tag.
+6. Copy `deploy-secrets.local.example.json` to the ignored `deploy-secrets.local.json` and fill it locally, or set the listed values in the current PowerShell process environment. Never commit the local file or print its values.
+7. Run `./scripts/deploy-lightsail.ps1 -ImageTag <git-sha>`. The script creates a temporary JSON request file, submits it through AWS CLI, and removes the file in `finally`.
+8. If using a custom domain, set `SCRIBEBA_ALLOWED_ORIGIN` to its exact HTTPS origin. Otherwise, the script uses the generated Lightsail HTTPS URL.
+
+## Runtime secret visibility
+
+App credentials are absent from Terraform variables, Terraform state, and GitHub code. The local script sends them to the Lightsail deployment API as container environment values. They are not exposed through the public HTTP endpoint by this configuration, but AWS principals with permission to read Lightsail deployments can read deployment configuration. The running app also receives the values in its process environment. This is an appropriate no-state-secret path when AWS deployment-read permissions are tightly restricted; it is not a secrets-at-runtime service boundary.
+
+Lightsail does not provide native Secrets Manager injection into container environment variables. If secrets must remain out of the Lightsail deployment configuration itself, use a runtime such as ECS/Fargate with Secrets Manager task-definition references and a narrowly scoped task role. Do not grant a Lightsail container broad access to a secret store without a supported workload identity.
 
 ## State and first initialization
 
@@ -49,7 +57,7 @@ Review the plan and estimate before applying. Do not apply from a pull request o
 
 ## Image delivery
 
-The repo's existing GitHub Actions workflow publishes to GHCR. This environment uses private ECR, so a deployment workflow must authenticate with GitHub OIDC and push the selected image tag to ECR, then apply the versioned deployment. Do not add long-lived AWS access keys to GitHub secrets. The existing infrastructure repository pipeline auto-applies its legacy `dev` root on pushes to `main`; review and change that pipeline before merging any infrastructure change to `main`.
+The infrastructure GitHub Actions workflow only runs Terraform formatting and validation; it does not apply infrastructure or deploy images. The deployment script is intentionally local-only and does not require GitHub secrets. A future CI deployment must use GitHub OIDC with least-privilege permissions. Do not add long-lived AWS access keys, app passwords, Nebius keys, Slack webhooks, or runtime environment files to GitHub.
 
 ## Cost and limitations
 
@@ -57,11 +65,14 @@ Lightsail container service pricing currently starts at $7/month for nano; micro
 
 The current backend stores run and room state in local JSON files. Container replacement can lose that data. Migrate those files to durable storage before treating the service as a production system with important user data.
 
+The AWS Notify Slack module is not included in this environment because its webhook would become an infrastructure input. Configure AWS alerting separately through an approved secret-delivery path if needed; it does not configure ScribeBA's Slack ingestion.
+
 ## Useful upstream modules
 
-- [AWS Notify Slack](https://github.com/terraform-aws-modules/terraform-aws-notify-slack) for CloudWatch/GuardDuty SNS alerts.
 - [AWS Lambda module](https://github.com/terraform-aws-modules/terraform-aws-lambda) for a future pay-per-use API migration.
 - [API Gateway v2 module](https://github.com/terraform-aws-modules/terraform-aws-apigateway-v2) for a serverless API edge.
 - [S3 bucket module](https://github.com/terraform-aws-modules/terraform-aws-s3-bucket) for durable objects or Terraform state.
 - [DynamoDB table module](https://github.com/terraform-aws-modules/terraform-aws-dynamodb-table) for persistent structured state.
 - [CloudFront module](https://github.com/terraform-aws-modules/terraform-aws-cloudfront) for a separate static frontend and CDN.
+
+If an earlier deployment applied app secrets through Terraform, rotate those secrets and review all historical S3 state object versions and Lightsail deployment versions; removing variables from the current configuration does not erase previously stored copies.
