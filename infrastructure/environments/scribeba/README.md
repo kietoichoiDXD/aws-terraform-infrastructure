@@ -27,9 +27,14 @@ Use Terraform CLI 1.10 or newer and AWS credentials with permissions limited to 
 The bootstrap root uses a local state file only for the bucket itself. Store that file securely and do not commit it. After creating the bucket, use its output in the ScribeBA backend config:
 
 ```powershell
-terraform -chdir=infrastructure/bootstrap/state init
+terraform -chdir=infrastructure/bootstrap/state init -backend=false
 terraform -chdir=infrastructure/bootstrap/state apply
 terraform -chdir=infrastructure/bootstrap/state output -raw bucket_name
+
+# Configure and migrate the bootstrap root to its own remote state:
+Copy-Item infrastructure/bootstrap/state/backend.hcl.example infrastructure/bootstrap/state/backend.hcl
+# Replace the placeholder bucket with the output above, then run:
+terraform -chdir=infrastructure/bootstrap/state init -migrate-state -backend-config=backend.hcl
 
 # In infrastructure/environments/scribeba:
 Copy-Item backend.hcl.example backend.hcl
