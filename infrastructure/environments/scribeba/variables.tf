@@ -1,7 +1,7 @@
 variable "aws_region" {
-  description = "AWS region. Jakarta is close to Vietnam; enable it in the account before use."
+  description = "AWS region. Singapore is the initial Lightsail deployment fallback."
   type        = string
-  default     = "ap-southeast-3"
+  default     = "ap-southeast-1"
 }
 
 variable "container_service_name" {

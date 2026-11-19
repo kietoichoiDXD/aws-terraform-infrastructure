@@ -4,7 +4,7 @@ param(
     [ValidatePattern('^[A-Za-z0-9._-]+$')]
     [string]$ImageTag,
 
-    [string]$Region = 'ap-southeast-3',
+    [string]$Region = 'ap-southeast-1',
     [string]$ServiceName = 'scribeba-prod',
     [string]$RepositoryName = 'scribeba-app',
     [string]$SecretsFile = (Join-Path (Split-Path -Parent $PSScriptRoot) 'deploy-secrets.local.json')

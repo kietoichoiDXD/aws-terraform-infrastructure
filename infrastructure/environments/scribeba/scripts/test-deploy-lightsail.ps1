@@ -21,7 +21,7 @@ function global:aws {
         return '{"containerServices":[{"containerServiceName":"scribeba-prod","url":"https://scribeba.test.invalid"}]}'
     }
     if ($command -eq 'ecr describe-repositories') {
-        return '{"repositories":[{"repositoryUri":"000000000000.dkr.ecr.ap-southeast-3.amazonaws.com/scribeba-app"}]}'
+        return '{"repositories":[{"repositoryUri":"000000000000.dkr.ecr.ap-southeast-1.amazonaws.com/scribeba-app"}]}'
     }
     if ($command -eq 'ecr describe-images') {
         return 'sha256:test-only'

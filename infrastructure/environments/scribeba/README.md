@@ -9,13 +9,13 @@ This environment creates the ScribeBA ECR repository and Lightsail container ser
 - No VPC, NAT Gateway, ALB, RDS, or always-on Kubernetes cluster.
 - Terraform has no application credentials, webhook values, or runtime environment variables as inputs.
 
-Jakarta (`ap-southeast-3`) is the default region because it is geographically closer to Vietnam than Singapore. Enable the region in the AWS account before deploying. This choice is for latency/geography; AWS's published Lightsail container pricing is not lower there by default.
+Singapore (`ap-southeast-1`) is the default deployment region for users in Vietnam. The earlier Jakarta attempt was blocked by an AWS KMS authorization error during Lightsail service creation. This is a regional fallback; verify current pricing and keep the fixed Lightsail service charge in mind.
 
 ## Before deployment
 
 Use Terraform CLI 1.10 or newer and AWS credentials with permissions limited to the resources in this environment.
 
-1. Confirm AWS account access and enable `ap-southeast-3` in AWS Account settings.
+1. Confirm AWS account access to `ap-southeast-1`.
 2. Bootstrap an encrypted, versioned S3 bucket for Terraform state with `infrastructure/bootstrap/state`. Keep state-bucket access restricted.
 3. Copy `backend.hcl.example` to the ignored `backend.hcl` and set the real state bucket. Copy `terraform.tfvars.example` to ignored `terraform.tfvars`. These Terraform values only configure the AWS region, service name, and service size.
 4. Apply Terraform to create ECR, the Lightsail service, and ECR pull access. **The Lightsail service has a fixed monthly charge as soon as it is created**, even before the app is deployed.
