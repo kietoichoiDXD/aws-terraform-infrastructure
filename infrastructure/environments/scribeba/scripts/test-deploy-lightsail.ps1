@@ -45,7 +45,7 @@ function global:aws {
             $container.environment.NEBIUS_API_KEY -ne $testValues.NEBIUS_API_KEY) {
             throw 'The deployment payload did not contain the expected test values.'
         }
-        if ($payload.publicEndpoint.healthCheckConfig.path -ne '/api/health') {
+        if ($payload.publicEndpoint.healthCheck.path -ne '/api/health') {
             throw 'The health check path is incorrect.'
         }
         return
