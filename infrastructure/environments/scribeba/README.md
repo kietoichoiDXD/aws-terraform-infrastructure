@@ -13,6 +13,8 @@ Jakarta (`ap-southeast-3`) is the default region because it is geographically cl
 
 ## Before deployment
 
+Use Terraform CLI 1.10 or newer and AWS credentials with permissions limited to the resources in this environment.
+
 1. Confirm AWS account access and enable `ap-southeast-3` in AWS Account settings.
 2. Bootstrap an encrypted, versioned S3 bucket for Terraform state with `infrastructure/bootstrap/state`. Keep access restricted. S3 state contains the app password, session secret, and Nebius key because Lightsail container deployment environment variables are managed as Terraform values. The variables are marked sensitive for CLI output, but sensitive values still exist in state.
 3. Copy `backend.hcl.example` to the ignored `backend.hcl` and set the real state bucket. Copy `terraform.tfvars.example` to ignored `terraform.tfvars`, then fill local values. Never commit either file.
