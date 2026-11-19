@@ -31,6 +31,7 @@ infrastructure/
 │   └── storage/            # S3 Buckets (Lưu trữ file)
 ├── environments/           # CẤU HÌNH MÔI TRƯỜNG (Hoàn thiện)
 │   └── dev/                # Môi trường Development chuẩn
+│   └── scribeba/           # ScribeBA Lightsail + ECR, tối ưu chi phí ban đầu
 ├── templates/              # BẢN VẼ MẪU (Skeletons)
 │   ├── environment_skeleton # Dùng khi tạo môi trường mới (Prod/Staging)
 │   └── module_skeleton      # Dùng khi tạo module mới (Redis/Kafka...)
@@ -70,6 +71,7 @@ Mọi thay đổi khi Push lên `main` hoặc tạo Pull Request sẽ tự độ
 *   🚢 [Quy Trình Triển Khai](infrastructure/docs/DEPLOYMENT_GUIDE.md) - Từng bước đưa app lên cloud.
 *   🛠️ [Xử Lý Lỗi](infrastructure/docs/TROUBLESHOOTING.md) - Giải pháp cho các vấn đề thường gặp.
 *   📐 [Sử Dụng Templates](infrastructure/templates/README_BOILERPLATE.md) - Cách mở rộng dự án.
+*   ☁️ [ScribeBA AWS Environment](infrastructure/environments/scribeba/README.md) - Triển khai ứng dụng bằng Lightsail Container và ECR.
 
 ---
 
